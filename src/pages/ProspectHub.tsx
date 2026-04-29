@@ -88,10 +88,31 @@ function NewBoardModal({ onClose, onCreate }: {
               {BOARD_COLORS.map((c) => (
                 <button key={c} onClick={() => setColor(c)}
                   className="w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
-                  style={{ background: c, boxShadow: color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : 'none' }}>
-                  {color === c && <Check size={12} className="text-white" strokeWidth={3} />}
+                  style={{ background: c, boxShadow: color === c && BOARD_COLORS.includes(color) ? `0 0 0 2px white, 0 0 0 4px ${c}` : 'none' }}>
+                  {color === c && BOARD_COLORS.includes(color) && <Check size={12} className="text-white" strokeWidth={3} />}
                 </button>
               ))}
+
+              {/* Custom color swatch */}
+              <label
+                className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110 relative overflow-hidden"
+                title="Custom colour"
+                style={{
+                  background: !BOARD_COLORS.includes(color)
+                    ? color
+                    : 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+                  boxShadow: !BOARD_COLORS.includes(color) ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none',
+                }}>
+                {!BOARD_COLORS.includes(color) && (
+                  <Check size={12} className="text-white drop-shadow" strokeWidth={3} style={{ filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.6))' }} />
+                )}
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+              </label>
             </div>
           </div>
 
