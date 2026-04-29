@@ -3,8 +3,224 @@ import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import {
   Plus, Search, Filter, Download, Upload, ChevronDown, X, Check, Trash2, Copy,
-  AlertCircle, CheckCircle2, Loader2,
+  AlertCircle, CheckCircle2, Loader2, LayoutGrid, Table2, ArrowLeft, Users, CheckCheck,
 } from 'lucide-react';
+
+// ─── Board types ──────────────────────────────────────────────────────────────
+interface Board {
+  id: string;
+  name: string;
+  color: string;
+  tag: string; // e.g. "SELL & RENT", "FOR SALE", "FOR RENT"
+}
+
+const BOARD_COLORS = [
+  '#F97316','#1EC9C4','#8B5CF6','#EF4444','#22C55E','#F59E0B',
+  '#3B82F6','#EC4899','#7C3AED','#06B6D4',
+];
+
+const BOARD_TAGS = ['SELL & RENT', 'FOR SALE', 'FOR RENT', 'COMMERCIAL', 'INDUSTRIAL'];
+
+const INITIAL_BOARDS: Board[] = [
+  { id: 'board_1', name: 'Millerz Square @ OKR',          color: '#F97316', tag: 'SELL & RENT' },
+  { id: 'board_2', name: 'AKASA @ Cheras',                 color: '#1EC9C4', tag: 'SELL & RENT' },
+  { id: 'board_3', name: 'The Rainz @ Bukit Jalil',        color: '#8B5CF6', tag: 'SELL & RENT' },
+  { id: 'board_4', name: 'Nidoz Residence @ Desa Petaling',color: '#EF4444', tag: 'FOR SALE'    },
+  { id: 'board_5', name: 'D\'Nuri @ Desa Petaling',        color: '#22C55E', tag: 'SELL & RENT' },
+  { id: 'board_6', name: 'Solaris Parq @ OKR',             color: '#F59E0B', tag: 'SELL & RENT' },
+];
+
+// ─── New Board Modal ──────────────────────────────────────────────────────────
+function NewBoardModal({ onClose, onCreate }: {
+  onClose: () => void;
+  onCreate: (name: string, color: string, tag: string) => void;
+}) {
+  const [name, setName]   = useState('');
+  const [color, setColor] = useState(BOARD_COLORS[0]);
+  const [tag, setTag]     = useState(BOARD_TAGS[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const initials = name.trim()
+    ? name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+    : 'BD';
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onCreate(name.trim(), color, tag);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-[420px] overflow-hidden" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div className="flex items-start justify-between px-6 pt-5 pb-4">
+          <div>
+            <h3 className="text-base font-bold" style={{ color: '#1A202C' }}>New Board</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>Create a project board</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={15} className="text-gray-400" /></button>
+        </div>
+
+        <div className="px-6 pb-5 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Board Name</label>
+            <input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose(); }}
+              placeholder="e.g. Millerz Square @ OKR"
+              className="w-full text-sm border rounded-xl px-3 py-2.5 outline-none transition-all"
+              style={{ borderColor: color, boxShadow: `0 0 0 3px ${color}22` }} />
+          </div>
+
+          {/* Tag */}
+          <div>
+            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Category</label>
+            <div className="flex flex-wrap gap-2">
+              {BOARD_TAGS.map((t) => (
+                <button key={t} onClick={() => setTag(t)}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border-2 transition-all"
+                  style={{ borderColor: tag === t ? color : '#E5E7EB', background: tag === t ? `${color}18` : 'white', color: tag === t ? color : '#6B7280' }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: '#374151' }}>Color</label>
+            <div className="flex flex-wrap gap-2">
+              {BOARD_COLORS.map((c) => (
+                <button key={c} onClick={() => setColor(c)}
+                  className="w-7 h-7 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
+                  style={{ background: c, boxShadow: color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : 'none' }}>
+                  {color === c && <Check size={12} className="text-white" strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: color }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.22)', color: 'white' }}>{initials}</div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-white opacity-70 uppercase tracking-wide">{tag}</p>
+              <p className="text-sm font-bold text-white truncate">{name.trim() || 'Board Name'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100" style={{ background: '#F8FAFB' }}>
+          <button onClick={onClose} className="px-4 py-1.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onClick={submit} disabled={!name.trim()}
+            className="px-5 py-1.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+            style={{ background: color }}>Create Board</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Board Card ───────────────────────────────────────────────────────────────
+function BoardCard({ board, prospects, onOpen }: {
+  board: Board;
+  prospects: Prospect[];
+  onOpen: () => void;
+}) {
+  const total     = prospects.length;
+  const available = prospects.filter((p) => p.availability === 'Available').length;
+  const positive  = prospects.filter((p) => p.callingStatus === 'Positive').length;
+  const pct       = total > 0 ? Math.round((available / total) * 100) : 0;
+
+  return (
+    <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'white', border: '1px solid #E5E7EB', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      {/* Coloured header band */}
+      <div className="px-4 pt-4 pb-3 flex flex-col gap-1" style={{ background: board.color }}>
+        <div className="flex items-start justify-between">
+          <span className="text-xs font-bold tracking-widest uppercase text-white opacity-80">{board.tag}</span>
+          <button onClick={onOpen} title="Open grid view"
+            className="p-1 rounded-lg transition-colors hover:bg-white/20">
+            <Table2 size={13} className="text-white" />
+          </button>
+        </div>
+        <p className="text-base font-bold text-white leading-snug">{board.name}</p>
+      </div>
+
+      {/* Stats */}
+      <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: '#F3F4F6' }}>
+          <Users size={11} style={{ color: '#6B7280' }} />
+          <span className="text-xs font-semibold" style={{ color: '#374151' }}>{total}</span>
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>prospects</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: '#ECFDF5' }}>
+          <CheckCheck size={11} style={{ color: '#16A34A' }} />
+          <span className="text-xs font-semibold" style={{ color: '#16A34A' }}>{available}</span>
+          <span className="text-xs" style={{ color: '#6EE7B7' }}>avail.</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: '#DCFCE7' }}>
+          <Plus size={11} style={{ color: '#15803D' }} strokeWidth={2.5} />
+          <span className="text-xs font-semibold" style={{ color: '#15803D' }}>{positive}</span>
+          <span className="text-xs" style={{ color: '#86EFAC' }}>+ve</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="px-4 pb-3 flex flex-col gap-1">
+        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#E5E7EB' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: board.color }} />
+        </div>
+        <p className="text-xs" style={{ color: '#9CA3AF' }}>{pct}% available</p>
+      </div>
+
+      {/* Open link */}
+      <div className="px-4 pb-4 mt-auto">
+        <button onClick={onOpen}
+          className="text-xs font-medium flex items-center gap-1 hover:gap-2 transition-all"
+          style={{ color: board.color }}>
+          Open Grid View <span>→</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Board Overview ───────────────────────────────────────────────────────────
+function BoardOverview({ boards, boardProspects, onOpenBoard, onAddBoard, totalAll }: {
+  boards: Board[];
+  boardProspects: Record<string, Prospect[]>;
+  onOpenBoard: (board: Board) => void;
+  onAddBoard: () => void;
+  totalAll: number;
+}) {
+  return (
+    <div className="flex-1 overflow-auto px-4 py-4">
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+        {boards.map((board) => (
+          <BoardCard
+            key={board.id}
+            board={board}
+            prospects={boardProspects[board.id] ?? []}
+            onOpen={() => onOpenBoard(board)}
+          />
+        ))}
+
+        {/* + Add Project Board */}
+        <button onClick={onAddBoard}
+          className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[180px] transition-all hover:border-[#1EC9C4] hover:bg-[#F0FFFE] group"
+          style={{ borderColor: '#D1D5DB' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: '#F3F4F6' }}>
+            <Plus size={20} className="text-gray-400 group-hover:text-[#1EC9C4] transition-colors" />
+          </div>
+          <span className="text-xs font-medium text-gray-400 group-hover:text-[#1EC9C4] transition-colors">Add Project Board</span>
+        </button>
+      </div>
+    </div>
+  );
+}
 import {
   seedProspects,
   type Prospect,
@@ -1017,7 +1233,45 @@ function AddFieldModal({ onAdd, onClose }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ProspectHub() {
-  const [rows, setRows] = useState<Prospect[]>(seedProspects);
+  // ── Board state ───────────────────────────────────────────────────────────
+  const [boards, setBoards] = useState<Board[]>(INITIAL_BOARDS);
+  const [view, setView]     = useState<'board' | 'grid'>('board');
+  const [activeBoard, setActiveBoard] = useState<Board | null>(null);
+  const [showNewBoard, setShowNewBoard] = useState(false);
+
+  // Per-board prospect data
+  const [boardProspects, setBoardProspects] = useState<Record<string, Prospect[]>>({
+    board_1: seedProspects.slice(0, 5),
+    board_2: seedProspects.slice(5, 9),
+    board_3: seedProspects.slice(9, 13),
+    board_4: seedProspects.slice(13, 15),
+    board_5: seedProspects.slice(15, 17),
+    board_6: seedProspects.slice(17),
+  });
+
+  const totalAll = Object.values(boardProspects).reduce((s, arr) => s + arr.length, 0);
+
+  const createBoard = (name: string, color: string, tag: string) => {
+    const newBoard: Board = { id: `board_${Date.now()}`, name, color, tag };
+    setBoards((prev) => [...prev, newBoard]);
+    setBoardProspects((prev) => ({ ...prev, [newBoard.id]: [] }));
+  };
+
+  const openBoard = (board: Board) => {
+    setActiveBoard(board);
+    setView('grid');
+  };
+
+  // Current rows depend on which board is open (grid view) or all (board view)
+  const rows    = activeBoard ? (boardProspects[activeBoard.id] ?? []) : seedProspects;
+  const setRows = (updater: Prospect[] | ((prev: Prospect[]) => Prospect[])) => {
+    if (!activeBoard) return;
+    setBoardProspects((prev) => ({
+      ...prev,
+      [activeBoard.id]: typeof updater === 'function' ? updater(prev[activeBoard.id] ?? []) : updater,
+    }));
+  };
+
   const [search, setSearch] = useState('');
   const [quickView, setQuickView] = useState<QuickView>('All');
   const [showFilter, setShowFilter] = useState(false);
@@ -1207,9 +1461,18 @@ export default function ProspectHub() {
 
       {/* ── Toolbar ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-2.5 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0 flex-wrap">
+        {/* Title + breadcrumb */}
         <div className="mr-1 flex-shrink-0">
-          <h2 className="text-base font-bold" style={{ color: '#2B3340' }}>Prospect Hub</h2>
-          <p className="text-xs" style={{ color: '#A1A9B6' }}>{filtered.length} of {rows.length} records</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold" style={{ color: '#2B3340' }}>Prospect Hub</h2>
+            <span className="px-1.5 py-0.5 rounded-md text-xs font-bold text-white" style={{ background: '#1EC9C4' }}>{totalAll}</span>
+          </div>
+          <p className="text-xs" style={{ color: '#A1A9B6' }}>
+            {view === 'board'
+              ? 'Board view'
+              : (<><button onClick={() => { setView('board'); setActiveBoard(null); }} className="hover:underline" style={{ color: '#1EC9C4' }}>Board view</button> / {activeBoard?.name}</>)
+            }
+          </p>
         </div>
         <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 bg-white w-52 focus-within:border-[#1EC9C4] transition-colors flex-shrink-0">
           <Search size={13} style={{ color: '#A1A9B6' }} />
@@ -1227,6 +1490,21 @@ export default function ProspectHub() {
           </button>
         )}
         <div className="flex-1" />
+
+        {/* Grid / Board toggle */}
+        <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+          <button onClick={() => { setView('grid'); if (!activeBoard && boards.length > 0) setActiveBoard(boards[0]); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
+            style={{ background: view === 'grid' ? '#1EC9C4' : 'white', color: view === 'grid' ? 'white' : '#6B7280' }}>
+            <Table2 size={13} /> Grid
+          </button>
+          <button onClick={() => { setView('board'); setActiveBoard(null); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-l border-gray-200"
+            style={{ background: view === 'board' ? '#1EC9C4' : 'white', color: view === 'board' ? 'white' : '#6B7280' }}>
+            <LayoutGrid size={13} /> Board
+          </button>
+        </div>
+
         <button onClick={() => setShowImport(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-[#1EC9C4] hover:text-[#1EC9C4] bg-white transition-colors flex-shrink-0">
           <Upload size={13} /> Import CSV
@@ -1235,15 +1513,34 @@ export default function ProspectHub() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-gray-300 bg-white transition-colors flex-shrink-0">
           <Download size={13} /> Export CSV
         </button>
-        <button onClick={addRow}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-          style={{ background: '#1EC9C4' }}>
-          <Plus size={13} strokeWidth={2.5} /> Add Row
-        </button>
+        {view === 'board' ? (
+          <button onClick={() => setShowNewBoard(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
+            style={{ background: '#1EC9C4' }}>
+            <Plus size={13} strokeWidth={2.5} /> Add Prospect
+          </button>
+        ) : (
+          <button onClick={addRow}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
+            style={{ background: '#1EC9C4' }}>
+            <Plus size={13} strokeWidth={2.5} /> Add Prospect
+          </button>
+        )}
       </div>
 
-      {/* ── Quick View Tabs ────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 px-4 py-0 bg-white border-b border-gray-100 flex-shrink-0">
+      {/* ── Board Overview (board mode) ────────────────────────────── */}
+      {view === 'board' && (
+        <BoardOverview
+          boards={boards}
+          boardProspects={boardProspects}
+          onOpenBoard={openBoard}
+          onAddBoard={() => setShowNewBoard(true)}
+          totalAll={totalAll}
+        />
+      )}
+
+      {/* ── Quick View Tabs (grid mode only) ─────────────────────────── */}
+      {view === 'grid' && <div className="flex items-center gap-1 px-4 py-0 bg-white border-b border-gray-100 flex-shrink-0">
         {QUICK_VIEWS.map((qv) => {
           const isActive = quickView === qv.label;
           return (
@@ -1260,13 +1557,13 @@ export default function ProspectHub() {
             </button>
           );
         })}
-      </div>
+      </div>}
 
-      {/* ── Filter bar ────────────────────────────────────────────── */}
-      {showFilter && <FilterBar filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} />}
+      {/* ── Filter bar (grid only) ───────────────────────────────────── */}
+      {view === 'grid' && showFilter && <FilterBar filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} />}
 
-      {/* ── Grid ──────────────────────────────────────────────────── */}
-      <div ref={gridScrollRef} className="flex-1 overflow-auto"
+      {/* ── Grid (grid only) ────────────────────────────────────────────── */}
+      {view === 'grid' && <div ref={gridScrollRef} className="flex-1 overflow-auto"
         style={{ cursor: isPanning ? 'grabbing' : 'default', userSelect: isPanning ? 'none' : undefined }}>
         <table style={{ minWidth: totalWidth, borderCollapse: 'collapse', tableLayout: 'fixed', width: totalWidth }}>
           <colgroup>
@@ -1440,25 +1737,28 @@ export default function ProspectHub() {
             <p className="text-xs" style={{ color: '#A1A9B6' }}>Try adjusting your search or filters</p>
           </div>
         )}
-      </div>
+      </div>}
 
-      {/* ── Status bar ────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-4 py-1.5 border-t flex-shrink-0" style={{ background: '#F8FAFB', borderColor: '#E5E7EB' }}>
-        <span className="text-xs" style={{ color: '#A1A9B6' }}>{rows.length} rows total</span>
-        {selectedRows.size > 0 && <span className="text-xs" style={{ color: '#1EC9C4' }}>{selectedRows.size} selected</span>}
-        {quickView !== 'All' && <span className="text-xs" style={{ color: '#A1A9B6' }}>Viewing: <strong>{quickView}</strong></span>}
-        <span className="text-xs ml-auto flex items-center gap-3" style={{ color: '#A1A9B6' }}>
-          <span>Click to edit · Drag <span style={{ color: '#1EC9C4' }}>●</span> to fill</span>
-          <span className="inline-flex items-center gap-1">
-            <kbd className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border" style={{ background: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }}>Space</kbd>
-            <span>+ drag to pan</span>
+      {/* ── Status bar (grid only) ────────────────────────────────── */}
+      {view === 'grid' && (
+        <div className="flex items-center gap-4 px-4 py-1.5 border-t flex-shrink-0" style={{ background: '#F8FAFB', borderColor: '#E5E7EB' }}>
+          <span className="text-xs" style={{ color: '#A1A9B6' }}>{rows.length} rows total</span>
+          {selectedRows.size > 0 && <span className="text-xs" style={{ color: '#1EC9C4' }}>{selectedRows.size} selected</span>}
+          {quickView !== 'All' && <span className="text-xs" style={{ color: '#A1A9B6' }}>Viewing: <strong>{quickView}</strong></span>}
+          <span className="text-xs ml-auto flex items-center gap-3" style={{ color: '#A1A9B6' }}>
+            <span>Click to edit · Drag <span style={{ color: '#1EC9C4' }}>●</span> to fill</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border" style={{ background: '#F3F4F6', borderColor: '#D1D5DB', color: '#6B7280' }}>Space</kbd>
+              <span>+ drag to pan</span>
+            </span>
           </span>
-        </span>
-      </div>
+        </div>
+      )}
 
       {/* ── Modals ────────────────────────────────────────────────── */}
       {showImport   && <ImportModal   onClose={() => setShowImport(false)}   onImport={handleImport} />}
       {showAddField && <AddFieldModal onClose={() => setShowAddField(false)} onAdd={addCustomField} />}
+      {showNewBoard && <NewBoardModal onClose={() => setShowNewBoard(false)} onCreate={createBoard} />}
     </div>
   );
 }
