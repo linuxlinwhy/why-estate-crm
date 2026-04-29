@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import {
   Plus, Search, Filter, Download, Upload, ChevronDown, X, Check, Trash2, Copy,
   AlertCircle, CheckCircle2, Loader2, LayoutGrid, Table2, ArrowLeft, Users, CheckCheck,
+  GripVertical, Settings2,
 } from 'lucide-react';
 
 // ─── Board types ──────────────────────────────────────────────────────────────
@@ -132,6 +133,115 @@ function NewBoardModal({ onClose, onCreate }: {
           <button onClick={submit} disabled={!name.trim()}
             className="px-5 py-1.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
             style={{ background: color }}>Create Board</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Manage Boards Modal ────────────────────────────────────────────────────────
+function ManageBoardsModal({ boards, onClose, onReorder, onDelete }: {
+  boards: Board[];
+  onClose: () => void;
+  onReorder: (boards: Board[]) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [list, setList]           = useState<Board[]>(boards);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const dragIndex = useRef<number | null>(null);
+  const dragOverIndex = useRef<number | null>(null);
+
+  const onDragStart = (i: number) => { dragIndex.current = i; };
+  const onDragEnter = (i: number) => {
+    dragOverIndex.current = i;
+    if (dragIndex.current === null || dragIndex.current === i) return;
+    const next = [...list];
+    const [moved] = next.splice(dragIndex.current, 1);
+    next.splice(i, 0, moved);
+    dragIndex.current = i;
+    setList(next);
+  };
+  const onDragEnd = () => {
+    onReorder(list);
+    dragIndex.current = null;
+    dragOverIndex.current = null;
+  };
+
+  const handleDelete = (id: string) => {
+    onDelete(id);
+    setList((prev) => prev.filter((b) => b.id !== id));
+    setDeleteConfirm(null);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-[440px] overflow-hidden" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '80vh' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-base font-bold" style={{ color: '#1A202C' }}>Manage Boards</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>Drag to reorder · click trash to delete</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={15} className="text-gray-400" /></button>
+        </div>
+
+        {/* Board list */}
+        <div className="overflow-y-auto px-4 py-3 space-y-2" style={{ maxHeight: 'calc(80vh - 130px)' }}>
+          {list.length === 0 && (
+            <p className="text-center py-8 text-sm" style={{ color: '#9CA3AF' }}>No boards yet</p>
+          )}
+          {list.map((board, i) => (
+            <div
+              key={board.id}
+              draggable
+              onDragStart={() => onDragStart(i)}
+              onDragEnter={() => onDragEnter(i)}
+              onDragEnd={onDragEnd}
+              onDragOver={(e) => e.preventDefault()}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all select-none"
+              style={{ background: '#FAFAFA', borderColor: '#E5E7EB', cursor: 'grab' }}>
+
+              {/* Drag handle */}
+              <GripVertical size={15} className="text-gray-300 flex-shrink-0" />
+
+              {/* Colour dot */}
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: board.color }} />
+
+              {/* Name + location */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: '#2B3340' }}>{board.name}</p>
+                {board.location && <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{board.location}</p>}
+              </div>
+
+              {/* Position badge */}
+              <span className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: '#F3F4F6', color: '#9CA3AF' }}>{i + 1}</span>
+
+              {/* Delete */}
+              {deleteConfirm === board.id ? (
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-xs" style={{ color: '#EF4444' }}>Delete?</span>
+                  <button onClick={() => handleDelete(board.id)}
+                    className="px-2 py-0.5 rounded-lg text-xs font-semibold text-white"
+                    style={{ background: '#EF4444' }}>Yes</button>
+                  <button onClick={() => setDeleteConfirm(null)}
+                    className="px-2 py-0.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">No</button>
+                </div>
+              ) : (
+                <button onClick={() => setDeleteConfirm(board.id)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0">
+                  <Trash2 size={14} className="text-gray-300 hover:text-red-400" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-6 py-4 border-t border-gray-100" style={{ background: '#F8FAFB' }}>
+          <button onClick={onClose}
+            className="px-5 py-1.5 rounded-xl text-sm font-semibold text-white hover:opacity-90"
+            style={{ background: '#1EC9C4' }}>Done</button>
         </div>
       </div>
     </div>
@@ -1252,7 +1362,8 @@ export default function ProspectHub() {
   const [boards, setBoards] = useState<Board[]>(INITIAL_BOARDS);
   const [view, setView]     = useState<'board' | 'grid'>('board');
   const [activeBoard, setActiveBoard] = useState<Board | null>(null);
-  const [showNewBoard, setShowNewBoard] = useState(false);
+  const [showNewBoard, setShowNewBoard]         = useState(false);
+  const [showManageBoards, setShowManageBoards] = useState(false);
 
   // Per-board prospect data
   const [boardProspects, setBoardProspects] = useState<Record<string, Prospect[]>>({
@@ -1265,6 +1376,11 @@ export default function ProspectHub() {
   });
 
   const totalAll = Object.values(boardProspects).reduce((s, arr) => s + arr.length, 0);
+
+  const deleteBoard = (id: string) => {
+    setBoards((prev) => prev.filter((b) => b.id !== id));
+    if (activeBoard?.id === id) { setActiveBoard(null); setView('board'); }
+  };
 
   const createBoard = (name: string, location: string, color: string) => {
     const newBoard: Board = { id: `board_${Date.now()}`, name, location, color };
@@ -1505,6 +1621,14 @@ export default function ProspectHub() {
           </button>
         )}
         <div className="flex-1" />
+
+        {/* Manage Boards button — only in board view */}
+        {view === 'board' && (
+          <button onClick={() => setShowManageBoards(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-[#1EC9C4] hover:text-[#1EC9C4] bg-white transition-colors flex-shrink-0">
+            <Settings2 size={13} /> Manage
+          </button>
+        )}
 
         {/* Grid / Board toggle */}
         <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
@@ -1762,6 +1886,14 @@ export default function ProspectHub() {
       {showImport   && <ImportModal   onClose={() => setShowImport(false)}   onImport={handleImport} />}
       {showAddField && <AddFieldModal onClose={() => setShowAddField(false)} onAdd={addCustomField} />}
       {showNewBoard && <NewBoardModal onClose={() => setShowNewBoard(false)} onCreate={createBoard} />}
+      {showManageBoards && (
+        <ManageBoardsModal
+          boards={boards}
+          onClose={() => setShowManageBoards(false)}
+          onReorder={setBoards}
+          onDelete={deleteBoard}
+        />
+      )}
     </div>
   );
 }
