@@ -11,7 +11,7 @@ interface Board {
   id: string;
   name: string;
   color: string;
-  tag: string; // e.g. "SELL & RENT", "FOR SALE", "FOR RENT"
+  tag: string; // e.g. "Project", "FOR SALE", "FOR RENT"
 }
 
 const BOARD_COLORS = [
@@ -19,15 +19,15 @@ const BOARD_COLORS = [
   '#3B82F6','#EC4899','#7C3AED','#06B6D4',
 ];
 
-const BOARD_TAGS = ['SELL & RENT', 'FOR SALE', 'FOR RENT', 'COMMERCIAL', 'INDUSTRIAL'];
+const BOARD_TAGS = ['Project', 'FOR SALE', 'FOR RENT', 'COMMERCIAL', 'INDUSTRIAL'];
 
 const INITIAL_BOARDS: Board[] = [
-  { id: 'board_1', name: 'Millerz Square @ OKR',          color: '#F97316', tag: 'SELL & RENT' },
-  { id: 'board_2', name: 'AKASA @ Cheras',                 color: '#1EC9C4', tag: 'SELL & RENT' },
-  { id: 'board_3', name: 'The Rainz @ Bukit Jalil',        color: '#8B5CF6', tag: 'SELL & RENT' },
+  { id: 'board_1', name: 'Millerz Square @ OKR',          color: '#F97316', tag: 'Project' },
+  { id: 'board_2', name: 'AKASA @ Cheras',                 color: '#1EC9C4', tag: 'Project' },
+  { id: 'board_3', name: 'The Rainz @ Bukit Jalil',        color: '#8B5CF6', tag: 'Project' },
   { id: 'board_4', name: 'Nidoz Residence @ Desa Petaling',color: '#EF4444', tag: 'FOR SALE'    },
-  { id: 'board_5', name: 'D\'Nuri @ Desa Petaling',        color: '#22C55E', tag: 'SELL & RENT' },
-  { id: 'board_6', name: 'Solaris Parq @ OKR',             color: '#F59E0B', tag: 'SELL & RENT' },
+  { id: 'board_5', name: 'D\'Nuri @ Desa Petaling',        color: '#22C55E', tag: 'Project' },
+  { id: 'board_6', name: 'Solaris Parq @ OKR',             color: '#F59E0B', tag: 'Project' },
 ];
 
 // ─── New Board Modal ──────────────────────────────────────────────────────────
@@ -1513,19 +1513,7 @@ export default function ProspectHub() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-gray-300 bg-white transition-colors flex-shrink-0">
           <Download size={13} /> Export CSV
         </button>
-        {view === 'board' ? (
-          <button onClick={() => setShowNewBoard(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-            style={{ background: '#1EC9C4' }}>
-            <Plus size={13} strokeWidth={2.5} /> Add Prospect
-          </button>
-        ) : (
-          <button onClick={addRow}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-            style={{ background: '#1EC9C4' }}>
-            <Plus size={13} strokeWidth={2.5} /> Add Prospect
-          </button>
-        )}
+
       </div>
 
       {/* ── Board Overview (board mode) ────────────────────────────── */}
