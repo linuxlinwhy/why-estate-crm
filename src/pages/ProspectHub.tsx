@@ -10,8 +10,8 @@ import {
 interface Board {
   id: string;
   name: string;
+  location: string;
   color: string;
-  tag: string; // e.g. "Project", "FOR SALE", "FOR RENT"
 }
 
 const BOARD_COLORS = [
@@ -19,25 +19,24 @@ const BOARD_COLORS = [
   '#3B82F6','#EC4899','#7C3AED','#06B6D4',
 ];
 
-const BOARD_TAGS = ['Project', 'FOR SALE', 'FOR RENT', 'COMMERCIAL', 'INDUSTRIAL'];
 
 const INITIAL_BOARDS: Board[] = [
-  { id: 'board_1', name: 'Millerz Square @ OKR',          color: '#F97316', tag: 'Project' },
-  { id: 'board_2', name: 'AKASA @ Cheras',                 color: '#1EC9C4', tag: 'Project' },
-  { id: 'board_3', name: 'The Rainz @ Bukit Jalil',        color: '#8B5CF6', tag: 'Project' },
-  { id: 'board_4', name: 'Nidoz Residence @ Desa Petaling',color: '#EF4444', tag: 'FOR SALE'    },
-  { id: 'board_5', name: 'D\'Nuri @ Desa Petaling',        color: '#22C55E', tag: 'Project' },
-  { id: 'board_6', name: 'Solaris Parq @ OKR',             color: '#F59E0B', tag: 'Project' },
+  { id: 'board_1', name: 'Millerz Square',   location: 'Old Klang Road',      color: '#F97316' },
+  { id: 'board_2', name: 'AKASA',            location: 'Cheras',              color: '#1EC9C4' },
+  { id: 'board_3', name: 'The Rainz',        location: 'Bukit Jalil',         color: '#8B5CF6' },
+  { id: 'board_4', name: 'Nidoz Residence',  location: 'Desa Petaling',       color: '#EF4444' },
+  { id: 'board_5', name: "D'Nuri",           location: 'Desa Petaling',       color: '#22C55E' },
+  { id: 'board_6', name: 'Solaris Parq',     location: 'Old Klang Road',      color: '#F59E0B' },
 ];
 
 // ─── New Board Modal ──────────────────────────────────────────────────────────
 function NewBoardModal({ onClose, onCreate }: {
   onClose: () => void;
-  onCreate: (name: string, color: string, tag: string) => void;
+  onCreate: (name: string, location: string, color: string) => void;
 }) {
-  const [name, setName]   = useState('');
-  const [color, setColor] = useState(BOARD_COLORS[0]);
-  const [tag, setTag]     = useState(BOARD_TAGS[0]);
+  const [name, setName]         = useState('');
+  const [location, setLocation] = useState('');
+  const [color, setColor]       = useState(BOARD_COLORS[0]);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -47,7 +46,7 @@ function NewBoardModal({ onClose, onCreate }: {
 
   const submit = () => {
     if (!name.trim()) return;
-    onCreate(name.trim(), color, tag);
+    onCreate(name.trim(), location.trim(), color);
     onClose();
   };
 
@@ -63,28 +62,23 @@ function NewBoardModal({ onClose, onCreate }: {
         </div>
 
         <div className="px-6 pb-5 space-y-4">
-          {/* Name */}
+          {/* Project Name */}
           <div>
-            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Board Name</label>
+            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Project Name</label>
             <input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose(); }}
-              placeholder="e.g. Millerz Square @ OKR"
+              placeholder="e.g. Millerz Square"
               className="w-full text-sm border rounded-xl px-3 py-2.5 outline-none transition-all"
               style={{ borderColor: color, boxShadow: `0 0 0 3px ${color}22` }} />
           </div>
 
-          {/* Tag */}
+          {/* Location */}
           <div>
-            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Category</label>
-            <div className="flex flex-wrap gap-2">
-              {BOARD_TAGS.map((t) => (
-                <button key={t} onClick={() => setTag(t)}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold border-2 transition-all"
-                  style={{ borderColor: tag === t ? color : '#E5E7EB', background: tag === t ? `${color}18` : 'white', color: tag === t ? color : '#6B7280' }}>
-                  {t}
-                </button>
-              ))}
-            </div>
+            <label className="text-xs font-semibold mb-1.5 block" style={{ color: '#374151' }}>Location</label>
+            <input value={location} onChange={(e) => setLocation(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+              placeholder="e.g. Old Klang Road"
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400 transition-all" />
           </div>
 
           {/* Color */}
@@ -106,8 +100,8 @@ function NewBoardModal({ onClose, onCreate }: {
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
               style={{ background: 'rgba(255,255,255,0.22)', color: 'white' }}>{initials}</div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-white opacity-70 uppercase tracking-wide">{tag}</p>
-              <p className="text-sm font-bold text-white truncate">{name.trim() || 'Board Name'}</p>
+              <p className="text-xs font-medium text-white opacity-70">{location.trim() || 'Location'}</p>
+              <p className="text-sm font-bold text-white truncate">{name.trim() || 'Project Name'}</p>
             </div>
           </div>
         </div>
@@ -139,7 +133,7 @@ function BoardCard({ board, prospects, onOpen }: {
       {/* Coloured header band */}
       <div className="px-4 pt-4 pb-3 flex flex-col gap-1" style={{ background: board.color }}>
         <div className="flex items-start justify-between">
-          <span className="text-xs font-bold tracking-widest uppercase text-white opacity-80">{board.tag}</span>
+          <span className="text-xs font-medium text-white opacity-70">{board.location}</span>
           <button onClick={onOpen} title="Open grid view"
             className="p-1 rounded-lg transition-colors hover:bg-white/20">
             <Table2 size={13} className="text-white" />
@@ -1251,8 +1245,8 @@ export default function ProspectHub() {
 
   const totalAll = Object.values(boardProspects).reduce((s, arr) => s + arr.length, 0);
 
-  const createBoard = (name: string, color: string, tag: string) => {
-    const newBoard: Board = { id: `board_${Date.now()}`, name, color, tag };
+  const createBoard = (name: string, location: string, color: string) => {
+    const newBoard: Board = { id: `board_${Date.now()}`, name, location, color };
     setBoards((prev) => [...prev, newBoard]);
     setBoardProspects((prev) => ({ ...prev, [newBoard.id]: [] }));
   };
